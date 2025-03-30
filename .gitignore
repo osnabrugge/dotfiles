@@ -1,0 +1,51 @@
+# Ignore chezmoi's temporary and state files
+/.chezmoi/*
+!.chezmoi/chezmoi.toml
+!.chezmoi/chezmoi.yaml
+!.chezmoi/chezmoi.json
+
+# Ignore editor swap/backup files
+*.swp
+*.swo
+*.bak
+*.tmp
+*~
+
+# Ignore system-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and caches
+*.log
+.cache/
+.local/share/chezmoi/
+
+# Ignore compiled files
+*.pyc
+*.o
+*.out
+*.class
+
+# Ignore secrets (if any are accidentally added)
+secrets.*
+*.key
+*.pem
+
+# Ignore binary files
+*.exe
+*.bin
+*.dll
+*.so
+
+# Ignore archives
+*.zip
+*.tar
+*.gz
+*.7z
+*.rar
+
+# Ignore node_modules (if applicable)
+node_modules/
+
+# Ignore vendor directories (if applicable)
+vendor/

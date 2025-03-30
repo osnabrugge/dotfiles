@@ -1,0 +1,157 @@
+# 🚀 dotfiles
+
+<div align="center">
+  
+![GitHub last commit](https://img.shields.io/github/last-commit/osnabrugge/dotfiles)
+![License](https://img.shields.io/github/license/osnabrugge/dotfiles)
+[![Powered by Chezmoi](https://img.shields.io/badge/powered%20by-chezmoi-blue)](https://github.com/twpayne/chezmoi)
+
+**Sean's personal system configuration - crafted with care and managed with precision**
+  
+<img src="https://raw.githubusercontent.com/twpayne/chezmoi/master/assets/logo-144px.png" width="80" />
+</div>
+
+## 📋 Table of Contents
+
+- [🚀 dotfiles](#-dotfiles)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [🌟 Overview](#-overview)
+  - [✨ Features](#-features)
+  - [💻 System Requirements](#-system-requirements)
+  - [📁 Directory Structure](#-directory-structure)
+  - [🚀 Quick Start](#-quick-start)
+    - [New Installation](#new-installation)
+    - [Manual Installation](#manual-installation)
+  - [🔐 Secrets Management](#-secrets-management)
+  - [🧩 Components](#-components)
+  - [🛠️ Customization](#️-customization)
+  - [🗺️ Roadmap](#️-roadmap)
+  - [💡 Inspiration](#-inspiration)
+  - [📄 License](#-license)
+
+## 🌟 Overview
+
+This repository contains my personal dotfiles, carefully organized and managed with [`chezmoi`](https://github.com/twpayne/chezmoi). Chezmoi provides a secure, flexible framework for managing dotfiles across multiple machines, ensuring consistency and ease of setup.
+
+These dotfiles represent my ideal development environment, optimized for productivity and adaptability across different operating systems and workflows.
+
+## ✨ Features
+
+- **Cross-platform compatibility**: Works in Linux (WSL2 for now) 
+- **Version control**: Managed with Git for easy tracking and collaboration
+- **Secure secrets management**: Integration with Bitwarden 
+- **Modular configuration**: Easily add or remove components
+- **Automated setup**: Quick installation with minimal manual steps
+- **Self-documented**: Clear organization and documentation
+
+## 💻 System Requirements
+
+- [`chezmoi`](https://github.com/twpayne/chezmoi) for dotfiles management
+- [`Bitwarden CLI`](https://bitwarden.com/help/cli/) for secrets management
+- Zsh as your preferred shell
+- Git for version control
+
+## 📁 Directory Structure
+
+```
+dotfiles/
+├── README.md                   # This documentation
+├── .github/                    # GitHub specific configuration
+│   ├── workflows/              # CI/CD workflows
+│   │   ├── ci.yml              # Continuous integration testing
+│   │   └── .renovate.json5     # Automated dependency updates
+├── home/                       # User home directory files
+│   └── .chezmoiscripts/        # Scripts executed by chezmoi
+│       ├── dot_hammerspoon/    # Hammerspoon configuration (macOS automation)
+│       ├── exact_dot_oh-my-zsh/# Oh-My-Zsh configuration
+│       ├── private_dot_config/ # App configurations (treated as private)
+│       ├── private_dot_gnupg/  # GPG configuration
+│       └── private_dot_ssh/    # SSH configuration
+├── .chezmoiroot                # Root directory marker for chezmoi
+├── .chezmoiversion             # Chezmoi version compatibility info
+└── install.sh                  # One-command installation script
+```
+
+## 🚀 Quick Start
+
+### New Installation
+
+```bash
+# One-command installation
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply osnabrugge
+```
+
+### Manual Installation
+
+```bash
+# Install chezmoi first if needed
+sh -c "$(curl -fsLS get.chezmoi.io)"
+
+# Initialize dotfiles
+chezmoi init osnabrugge
+
+# Preview changes (recommended)
+chezmoi diff
+
+# Apply changes
+chezmoi apply
+```
+
+## 🔐 Secrets Management
+
+Personal secrets are stored in [Bitwarden](https://bitwarden.com) and retrieved securely during setup. Before installation:
+
+1. Install the [Bitwarden CLI](https://bitwarden.com/help/cli/)
+2. Login to your Bitwarden account:
+
+```bash
+bw login
+```
+
+The setup scripts will securely fetch necessary credentials during installation.
+
+## 🧩 Components
+
+| Component | Purpose |
+|-----------|---------|
+| Hammerspoon | macOS automation and window management |
+| Oh-My-Zsh | Zsh configuration framework |
+| SSH | Secure remote connections |
+| GPG | Cryptographic key management |
+| Git | Version control configuration |
+
+## 🛠️ Customization
+
+These dotfiles are designed to be easily customized:
+
+1. Fork this repository
+2. Modify the files to match your preferences
+3. Update the install script if needed
+4. Use `chezmoi` to apply your changes
+
+## 🗺️ Roadmap
+
+- [ ] Add containerized testing environment
+- [ ] Impletment CI/CD for dotfiles updates
+- [ ] Expand cross-platform compatibility
+- [ ] Create themed terminal configurations
+- [ ] Add documentation for each major component
+- [ ] Improve shell script performance
+- [ ] Create specialized configurations for different use cases (development, server management, etc.)
+
+## 💡 Inspiration
+
+This setup draws inspiration from the following excellent dotfiles repositories:
+
+- [twpayne/dotfiles](https://github.com/twpayne/dotfiles) - For chezmoi structure and organization
+- [onedr0p/dotfiles](https://github.com/onedr0p/dotfiles) - For component ideas and implementation strategies
+
+## 📄 License
+
+These dotfiles are licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  <i>⚙️ Crafted with care for optimal development environments ⚙️</i>
+</div>

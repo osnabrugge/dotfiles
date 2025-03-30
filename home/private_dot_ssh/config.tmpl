@@ -1,0 +1,37 @@
+HashKnownHosts no
+
+Host core01 core01.homeops.ca 192.168.99.4
+   Hostname core01.homeops.ca
+   User root
+   StrictHostKeyChecking no
+   IdentitiesOnly yes
+   IdentityFile ~/.ssh/id_rsa
+   KexAlgorithms +diffie-hellman-group1-sha1
+   PubkeyAcceptedKeyTypes +ssh-rsa
+   HostKeyAlgorithms +ssh-rsa
+   PubkeyAcceptedAlgorithms +ssh-rsa
+   HostKeyAlgorithms +ssh-rsa
+
+Host ups01 ups01.homeops.ca 192.168.70.10
+   Hostname ups01.homeops.ca
+   User ups-admin
+   StrictHostKeyChecking no
+   Ciphers +aes256-cbc,aes128-cbc
+   PubkeyAcceptedKeyTypes +ssh-rsa
+   HostKeyAlgorithms +ssh-rsa
+
+Host ups02 ups02.homeops.ca 192.168.70.11
+   Hostname ups02.homeops.ca
+   User ups-admin
+   StrictHostKeyChecking no
+   Ciphers +aes256-cbc,aes128-cbc
+   PubkeyAcceptedKeyTypes +ssh-rsa
+   HostKeyAlgorithms +ssh-rsa
+
+Host pdu01 pdu01.homeops.ca 192.168.70.15
+   Hostname pdu01.homeops.ca
+   User pdu-admin
+   StrictHostKeyChecking no
+   Ciphers +aes256-cbc,aes128-cbc
+   PubkeyAcceptedKeyTypes +ssh-rsa
+   HostKeyAlgorithms +ssh-rsa
