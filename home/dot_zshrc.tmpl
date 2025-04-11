@@ -93,7 +93,7 @@ if ! bw status | grep -q "authenticated"; then
   bw login --apikey
 fi
 # Export GitHub Access Token from Bitwarden
-export GITHUB_ACCESS_TOKEN=$(bw get item "GitHub Personal Read-Only Access Token" | jq -r '.notes' | trim)
+export GITHUB_ACCESS_TOKEN=$(bw get item "GitHub Personal Access Token" | jq -r '.notes' | trim)
 {{ end -}}
 
 export GOBIN=$HOME/.local/bin
