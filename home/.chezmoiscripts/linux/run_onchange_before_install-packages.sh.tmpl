@@ -1,3 +1,4 @@
+#!/bin/bash
 {{ if or (eq .osid "linux-debian") (eq .osid "linux-raspbian") (eq .osid "linux-ubuntu") }}
 {{ $packages := list
      "bat"
