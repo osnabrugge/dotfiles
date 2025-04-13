@@ -27,12 +27,6 @@
 {{-   $osID = "windows" -}}
 {{- end -}}
 
-{{/* detect WSL */}}
-{{- if and (eq .chezmoi.os "linux") (.chezmoi.wsl) -}}
-{{-   $ephemeral = false -}}
-{{-   $headless = false -}}
-{{- end -}}
-
 {{/* detect work machines */}}
 {{- $hostname := .chezmoi.hostname -}}
 {{- if eq $hostname "seanvan-laptop" -}}
