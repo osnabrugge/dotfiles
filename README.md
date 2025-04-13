@@ -61,12 +61,14 @@ dotfiles/
 │   │   ├── ci.yml              # Continuous integration testing
 │   │   └── .renovate.json5     # Automated dependency updates
 ├── home/                       # User home directory files
-│   └── .chezmoiscripts/        # Scripts executed by chezmoi
-│       ├── dot_hammerspoon/    # Hammerspoon configuration (macOS automation)
-│       ├── exact_dot_oh-my-zsh/# Oh-My-Zsh configuration
-│       ├── private_dot_config/ # App configurations (treated as private)
-│       ├── private_dot_gnupg/  # GPG configuration
-│       └── private_dot_ssh/    # SSH configuration
+│   ├── .chezmoiscripts/        # Scripts executed by chezmoi
+|   |   ├── linux               # Linux specific scripts
+│   |   ├── windows             # Windows specific scripts
+│   |   └── wsl                 # WSL specific scripts
+│   ├── exact_dot_oh-my-zsh/    # Oh-My-Zsh configuration
+│   ├── private_dot_config/     # App configurations (treated as private)
+│   ├── private_dot_gnupg/      # GPG configuration
+│   └── private_dot_ssh/        # SSH configuration
 ├── .chezmoiroot                # Root directory marker for chezmoi
 ├── .chezmoiversion             # Chezmoi version compatibility info
 └── install.sh                  # One-command installation script
