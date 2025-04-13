@@ -50,9 +50,9 @@
 {{-   $headless = true -}}
 {{- end -}}
 
-{{- $email := (include "email" | fromYaml).email -}}
+{{- $email = "personal@example.com" -}}
 {{- if $work -}}
-{{-   $email = (include "email_work" | fromYaml).email -}}
+{{-   $email = "work@example.com" -}}
 {{- end -}}
 
 [data]
