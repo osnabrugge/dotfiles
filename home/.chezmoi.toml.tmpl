@@ -16,12 +16,6 @@
 {{-   $headless = true -}}
 {{- end -}}
 
-{{/* detect WSL */}}
-{{- if and (eq .chezmoi.os "windows") (eq .chezmoi.wslDistroName "Ubuntu" or "Debian") -}}
-{{-   $ephemeral = true -}}
-{{-   $headless = true -}}
-{{- end -}}
-
 {{/* detect Windows */}}
 {{- if eq .chezmoi.os "windows" -}}
 {{-   $osID = "windows" -}}
