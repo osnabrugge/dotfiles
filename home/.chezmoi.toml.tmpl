@@ -27,9 +27,10 @@
 {{-   $osID = "windows" -}}
 {{- end -}}
 
-{{/* detect ephemeral machines */}}
-{{- if eq .chezmoi.os "windows" -}}
-{{-   $ephemeral = true -}}
+{{/* detect WSL */}}
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.wsl) -}}
+{{-   $ephemeral = false -}}
+{{-   $headless = false -}}
 {{- end -}}
 
 {{/* detect work machines */}}
@@ -39,25 +40,31 @@
 {{-   $headless = false -}}
 {{-   $ephemeral = false -}}
 {{-   $personal = false -}}
-{{-   else if eq $hostname "desktop01" -}}
+
+{{/* detect personal machines */}}
+{{- else if eq $hostname "desktop01" -}}
 {{-   $headless = false -}}
 {{-   $ephemeral = false -}}
-{{-     $personal = true -}}
-{{-   else if eq $hostname "pi*" or "nas*" or "k3s*" or "fw*" or "kvm*" or "fdm*" -}}
-{{-     $headless = true -}}
-{{-   $ephemeral = false -}}
-{{-     $personal = true -}}
-{{-   else if stdinIsATTY -}}
-{{-     $headless = promptBoolOnce . "headless" "headless" -}}
-{{-     $ephemeral = promptBoolOnce . "ephemeral" "ephemeral" -}}
-{{-   else -}}
-{{-     $ephemeral = true -}}
-{{-     $headless = true -}}
-{{-   end -}}
+{{-   $personal = true -}}
 
-{{- $email := "sean@seanv.com" -}}
+{{/* detect headless machines */}}
+{{- else if eq $hostname "pi*" or "nas*" or "k3s*" or "fw*" or "kvm*" or "fdm*" -}}
+{{-   $headless = true -}}
+{{-   $ephemeral = false -}}
+{{-   $personal = true -}}
+
+{{/* prompt for headless and ephemeral */}}
+{{- else if stdinIsATTY -}}
+{{-   $headless = promptBoolOnce . "headless" "headless" -}}
+{{-   $ephemeral = promptBoolOnce . "ephemeral" "ephemeral" -}}
+{{- else -}}
+{{-   $ephemeral = true -}}
+{{-   $headless = true -}}
+{{- end -}}
+
+{{- $email := (include "email" | fromYaml).email -}}
 {{- if $work -}}
-{{-   $email = "seanvan@microsoft.com" -}}
+{{-   $email = (include "email_work" | fromYaml).email -}}
 {{- end -}}
 
 [data]
