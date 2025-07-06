@@ -14,7 +14,8 @@
 
 [".local/bin/bw"]
     type = "archive-file"
-    url = {{ gitHubLatestReleaseAssetURL "bitwarden/clients" "bw-linux-unknown.zip" | quote }}
+    url = {{ (gitHubReleaseAssets "bitwarden/clients" | firstMatch "^bw-linux-cli-.*\\.zip$") | quote }}
+    refreshPeriod = "72h"
     executable = true
     path = "./bw"
 
