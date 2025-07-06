@@ -3,6 +3,7 @@
 {{ $packages := list
      "bat"
      "build-essential"
+     "bw"
      "curl"
      "fd-find"
      "fzf"
@@ -19,7 +20,7 @@
 {{ $classicSnaps := list }}
 
 {{ if eq .osid "linux-ubuntu" }}
-{{   $packages = concat $packages (list "btop" "bw") }}
+{{   $packages = concat $packages (list "btop" "fastfetch") }}
 {{ end }}
 
 {{ if not .headless }}
@@ -33,7 +34,7 @@
 {{ end }}
 
 {{ if eq .hostname "desktop01" }}
-{{   $packages = concat $packages (list "clang" "clang-format" "libstdc++-12-dev" "ninja-build" "pgformatter" "python3-dev" "python3-pip" "python3-venv") }}
+{{   $packages = concat $packages (list "python3-dev" "python3-pip" "python3-venv") }}
 {{ end }}
 
 {{ $sudo := "sudo " }}
