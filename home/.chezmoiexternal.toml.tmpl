@@ -42,7 +42,7 @@
 {{- if and (not .ephemeral) (not .headless) }}
 {{-   $fontDir := "" }}
 {{-   if eq .chezmoi.os "windows" }}
-{{-     $fontDir = "%windir%\Fonts" }}
+{{-     $fontDir = "C:\windows\Fonts" }}
 {{-   else if eq .chezmoi.os "linux" }}
 {{-     $fontDir = ".local/share/fonts" }}
 {{-   end }}
