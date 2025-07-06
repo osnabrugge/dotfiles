@@ -89,7 +89,7 @@ export EDITOR=vim
 {{ if not .ephemeral -}}
 # Log in to Bitwarden CLI if not already authenticated
 if ! bw status | grep -q "authenticated"; then
-  echo "Logging into Bitwarden CLI..."
+  echo "🔐 Logging into Bitwarden CLI..."
   bw login --apikey
 fi
 # Export GitHub Access Token from Bitwarden
