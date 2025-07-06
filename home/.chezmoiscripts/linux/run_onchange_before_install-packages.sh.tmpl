@@ -20,6 +20,7 @@
 
 {{ if eq .osid "linux-ubuntu" }}
 {{   $packages = concat $packages (list "btop" "fastfetch") }}
+{{   $snaps = mustAppend $snaps "bw" }}
 {{ end }}
 
 {{ if not .headless }}
