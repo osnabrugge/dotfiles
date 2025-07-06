@@ -1,3 +1,3 @@
-# Export Personal SSH RSA Private Key from Bitwarden
-#{{- $sshKey := (bw get item "Personal SSH RSA Private Key" | fromJson).notes | trim -}}
-#{{- $sshKey.privateKey | trim -}}
+{{- if .personal -}}
+{{- (bitwardenFields "item" "SSHKeys").RSA.value -}}
+{{- end -}}

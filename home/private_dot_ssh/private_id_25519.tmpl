@@ -1,0 +1,3 @@
+{{- if .personal -}}
+{{- (bitwardenFields "item" "SSHKeys").OPENSSH.value -}}
+{{- end -}}
