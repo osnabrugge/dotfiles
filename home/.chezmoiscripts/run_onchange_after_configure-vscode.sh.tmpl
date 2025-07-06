@@ -1,3 +1,4 @@
+#!/bin/bash
 {{ if and (eq .chezmoi.os "linux") (not .headless) }}
 {{ $extensions := list
      "asvetliakov.vscode-neovim"
@@ -16,12 +17,13 @@
      "tamasfe.even-better-toml"
      "Tyriar.sort-lines"
      "yzhang.markdown-all-in-one" }}
-#!/bin/bash
 
-set -eufo pipefail
+set -euo pipefail
 
 {{ range $extensions }}
-code --force --install-extension {{ . }}
+if ! code --list-extensions | grep -q "^{{ . }}$"; then
+  code --force --install-extension {{ . }}
+fi
 {{ end }}
 
 {{ end }}
