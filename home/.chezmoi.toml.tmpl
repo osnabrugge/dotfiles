@@ -36,7 +36,7 @@
 {{-   $personal = true -}}
 
 {{/* detect headless machines */}}
-{{- else if (or (hasPrefix $hostname "pi") (hasPrefix $hostname "nas") (hasPrefix $hostname "k8s") (hasPrefix $hostname "fw") (hasPrefix $hostname "pve") (hasPrefix $hostname "kvm") (hasPrefix $hostname "fdm")) -}}
+{{- else if (or (hasPrefix $hostname "pi") (hasPrefix $hostname "nas") (hasPrefix $hostname "fw") (hasPrefix $hostname "pve") (hasPrefix $hostname "kvm") (hasPrefix $hostname "fdm")) -}}
 {{-   $headless = true -}}
 {{-   $ephemeral = false -}}
 {{-   $personal = true -}}
