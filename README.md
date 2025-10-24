@@ -1,13 +1,13 @@
 # 🚀 dotfiles
 
 <div align="center">
-  
+
 ![GitHub last commit](https://img.shields.io/github/last-commit/osnabrugge/dotfiles)
 ![License](https://img.shields.io/github/license/osnabrugge/dotfiles)
 [![Powered by Chezmoi](https://img.shields.io/badge/powered%20by-chezmoi-blue)](https://github.com/twpayne/chezmoi)
 
 **Sean's personal system configuration - crafted with care and managed with precision**
-  
+
 <img src="https://raw.githubusercontent.com/twpayne/chezmoi/master/assets/logo-144px.png" width="80" />
 </div>
 
@@ -37,19 +37,25 @@ These dotfiles represent my ideal development environment, optimized for product
 
 ## ✨ Features
 
-- **Cross-platform compatibility**: Works in Linux (WSL2 for now) 
+- **Cross-platform compatibility**: Works in Linux (WSL2 for now)
 - **Version control**: Managed with Git for easy tracking and collaboration
-- **Secure secrets management**: Integration with Bitwarden 
+- **Secure secrets management**: Integration with Bitwarden
 - **Modular configuration**: Easily add or remove components
 - **Automated setup**: Quick installation with minimal manual steps
 - **Self-documented**: Clear organization and documentation
 
 ## 💻 System Requirements
 
-- [`chezmoi`](https://github.com/twpayne/chezmoi) for dotfiles management
-- [`Bitwarden CLI`](https://bitwarden.com/help/cli/) for secrets management
-- Zsh as your preferred shell
-- Git for version control
+- **No prerequisites required!** 🎉
+- A fresh Linux installation (Ubuntu, Debian, Raspberry Pi OS)
+- Internet connection for downloading packages
+- Sudo access for package installation
+
+**Optional (installed automatically):**
+- [`chezmoi`](https://github.com/twpayne/chezmoi) - installed by the setup command
+- [`Bitwarden CLI`](https://bitwarden.com/help/cli/) - installed during setup
+- Zsh - installed and configured automatically
+- Git - installed during setup
 
 ## 📁 Directory Structure
 
@@ -79,9 +85,15 @@ dotfiles/
 ### New Installation
 
 ```bash
-# One-command installation
+# One-command installation (will prompt for machine type and sudo password)
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply osnabrugge
 ```
+
+**What to expect:**
+1. You'll be prompted to configure machine type (headless/ephemeral)
+2. You'll need to enter your sudo password for package installation
+3. After installation, **log out and back in** to activate zsh as your default shell
+4. Bitwarden CLI will be installed automatically
 
 ### Manual Installation
 
@@ -101,14 +113,16 @@ chezmoi apply
 
 ## 🔐 Secrets Management
 
-Personal secrets are stored in [Bitwarden](https://bitwarden.com) and retrieved securely during setup. Before installation:
+Personal secrets are stored in [Bitwarden](https://bitwarden.com) and retrieved securely during setup.
 
-1. Install the [Bitwarden CLI](https://bitwarden.com/help/cli/)
-2. Login to your Bitwarden account:
+**After installation**, authenticate with Bitwarden:
 
 ```bash
+# After logging back in with zsh
 bw login
 ```
+
+The Bitwarden CLI is installed automatically during setup. If you see Node.js warnings, they're harmless - Bitwarden will work after authentication.
 
 The setup scripts will securely fetch necessary credentials during installation.
 

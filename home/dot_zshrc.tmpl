@@ -86,40 +86,35 @@ bitwardenField() {
   # Usage: bitwardenField <item_name> <field_path>
   local item="$1"
   local field="$2"
-  bw get item "$item" | jq -r "$field"
+  bw get item "$item" | jq -r "$field" 2>/dev/null || echo ""
 }
 
-# Ensure Bitwarden CLI is installed and available
-if ! command -v bw >/dev/null 2>&1; then
-  echo "Bitwarden CLI not found, attempting install via npm..."
-  if command -v npm >/dev/null 2>&1; then
-    npm install -g @bitwarden/cli
-    export PATH="$PATH:$(npm root -g)/.bin"
-  else
-    echo "npm not found, cannot install Bitwarden CLI."
-  fi
-fi
-
 {{ if not .ephemeral -}}
-# Bitwarden CLI setup
+# Bitwarden CLI setup with better error handling
 if command -v bw >/dev/null 2>&1; then
   # Check if bw command actually works (not just exists)
-  if bw --version >/dev/null 2>&1; then
+  if timeout 5 bw --version >/dev/null 2>&1; then
     if ! bw status | grep -q "authenticated" 2>/dev/null; then
       echo "🔐 Bitwarden CLI available but not authenticated"
       echo "Run 'bw login' to authenticate when ready"
     else
       # Export GitHub Access Token from Bitwarden, if possible
       if command -v jq >/dev/null 2>&1; then
-        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value' 2>/dev/null || echo '')"
+        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
       fi
     fi
   else
-    echo "⚠️  Bitwarden CLI found but not working properly (Node.js issue?)"
-    echo "Consider installing Node.js in WSL: sudo apt install nodejs npm"
+    # Check if Node.js is actually available
+    if command -v node >/dev/null 2>&1; then
+      echo "🔄 Bitwarden CLI found but may need PATH update"
+      echo "Try running 'hash -r' or restart your shell"
+    else
+      echo "⚠️  Bitwarden CLI found but Node.js not in PATH"
+      echo "This is usually fixed by restarting your shell after package installation"
+    fi
   fi
 else
-  echo "ℹ️  Bitwarden CLI not found - secrets management disabled"
+  echo "ℹ️  Bitwarden CLI not found - will be installed by setup scripts"
 fi
 {{ end -}}
 

@@ -10,10 +10,8 @@
      "ms-vscode-remote.remote-containers"
      "ms-vscode-remote.remote-ssh"
      "ms-vscode-remote.remote-ssh-edit"
-     "ms-vscode-remote.remote-extensionpack"
      "ms-vscode.cpptools"
      "redhat.vscode-yaml"
-     "stkb.rewrap"
      "tamasfe.even-better-toml"
      "Tyriar.sort-lines"
      "yzhang.markdown-all-in-one" }}
@@ -27,16 +25,18 @@ if ! command -v code >/dev/null 2>&1; then
 fi
 
 echo "Installing VSCode extensions..."
+
 {{ range $extensions }}
 echo "Checking extension: {{ . }}"
 if ! code --list-extensions | grep -q "^{{ . }}$"; then
     echo "Installing extension: {{ . }}"
-    code --force --install-extension {{ . }} || {
-        echo "Warning: Failed to install extension {{ . }}"
-        continue
-    }
+    if code --force --install-extension {{ . }}; then
+        echo "✅ Successfully installed: {{ . }}"
+    else
+        echo "❌ Failed to install: {{ . }} - continuing with other extensions"
+    fi
 else
-    echo "Extension {{ . }} is already installed"
+    echo "✅ Extension {{ . }} is already installed"
 fi
 {{ end }}
 

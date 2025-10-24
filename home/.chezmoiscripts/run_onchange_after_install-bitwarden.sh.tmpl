@@ -1,0 +1,97 @@
+{{ if and (not .ephemeral) (or (eq .osid "linux-ubuntu") (eq .osid "linux-debian") (eq .osid "linux-raspbian")) -}}
+#!/bin/bash
+
+set -eufo pipefail
+
+echo "Setting up Bitwarden CLI..."
+
+# Check if already installed
+if command -v bw >/dev/null 2>&1 && bw --version >/dev/null 2>&1; then
+    echo "✅ Bitwarden CLI is already installed and working"
+    exit 0
+fi
+
+# Method 1: Try package manager first
+if command -v apt >/dev/null 2>&1; then
+    echo "Trying to install Bitwarden CLI via apt..."
+    if sudo apt install -y bitwarden-cli 2>/dev/null; then
+        echo "✅ Installed Bitwarden CLI via apt"
+        exit 0
+    else
+        echo "Package not available via apt, trying other methods..."
+    fi
+fi
+
+# Method 2: Try snap
+if command -v snap >/dev/null 2>&1; then
+    echo "Trying to install Bitwarden CLI via snap..."
+    if sudo snap install bw 2>/dev/null; then
+        echo "✅ Installed Bitwarden CLI via snap"
+        exit 0
+    else
+        echo "Snap installation failed, trying npm..."
+    fi
+fi
+
+# Method 3: Try npm with proper setup
+if command -v npm >/dev/null 2>&1; then
+    echo "Setting up npm for local installations..."
+
+    # Create local npm directory
+    mkdir -p "$HOME/.local/npm-global"
+
+    # Configure npm
+    npm config set prefix "$HOME/.local/npm-global"
+
+    # Add to PATH for current session
+    export PATH="$HOME/.local/npm-global/bin:$PATH"
+
+    # Install Bitwarden CLI
+    if npm install -g @bitwarden/cli; then
+        echo "✅ Successfully installed Bitwarden CLI via npm"
+
+        # Add to shell profile for persistence
+        if ! grep -q "npm-global/bin" "$HOME/.zshrc" 2>/dev/null; then
+            echo 'export PATH="$HOME/.local/npm-global/bin:$PATH"' >> "$HOME/.zshrc"
+        fi
+        exit 0
+    else
+        echo "❌ npm installation failed"
+    fi
+fi
+
+# Method 4: Direct download (fallback)
+echo "Trying direct download method..."
+BW_VERSION=$(curl -s https://api.github.com/repos/bitwarden/clients/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/cli-v//')
+
+if [ -n "$BW_VERSION" ]; then
+    echo "Downloading Bitwarden CLI version $BW_VERSION..."
+
+    # Detect architecture
+    ARCH=$(uname -m)
+    case $ARCH in
+        x86_64) BW_ARCH="x86_64" ;;
+        aarch64|arm64) BW_ARCH="aarch64" ;;
+        armv7l) BW_ARCH="armv7" ;;
+        *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+    esac
+
+    # Download and install
+    wget -O "/tmp/bw-linux-${BW_ARCH}.zip" "https://github.com/bitwarden/clients/releases/download/cli-v${BW_VERSION}/bw-linux-${BW_ARCH}-${BW_VERSION}.zip"
+
+    if [ -f "/tmp/bw-linux-${BW_ARCH}.zip" ]; then
+        unzip -o "/tmp/bw-linux-${BW_ARCH}.zip" -d /tmp/
+        chmod +x /tmp/bw
+        mkdir -p "$HOME/.local/bin"
+        mv /tmp/bw "$HOME/.local/bin/"
+        rm -f "/tmp/bw-linux-${BW_ARCH}.zip"
+        echo "✅ Successfully installed Bitwarden CLI via direct download"
+    else
+        echo "❌ Failed to download Bitwarden CLI"
+    fi
+else
+    echo "❌ Could not determine latest Bitwarden CLI version"
+fi
+
+echo "Bitwarden CLI setup complete"
+{{ end -}}

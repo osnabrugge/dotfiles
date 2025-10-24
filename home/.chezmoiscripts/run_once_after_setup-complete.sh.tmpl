@@ -1,0 +1,28 @@
+{{ if not .ephemeral -}}
+#!/bin/bash
+
+echo "🎉 Dotfiles installation complete!"
+echo ""
+echo "Next steps:"
+echo "1. ✅ You're now using zsh as your default shell"
+echo "2. 🔐 Authenticate with Bitwarden: bw login"
+echo "3. 🔄 If you see Node.js warnings, run: hash -r"
+echo ""
+
+# Test if everything is working
+if command -v bw >/dev/null 2>&1 && timeout 3 bw --version >/dev/null 2>&1; then
+    echo "✅ Bitwarden CLI is working correctly"
+else
+    echo "⚠️  Bitwarden CLI needs authentication or PATH refresh"
+    echo "   Try: hash -r && bw --version"
+fi
+
+if command -v code >/dev/null 2>&1; then
+    echo "✅ VSCode is available"
+else
+    echo "ℹ️  VSCode not found (this is normal for headless systems)"
+fi
+
+echo ""
+echo "🚀 Your development environment is ready!"
+{{ end -}}
