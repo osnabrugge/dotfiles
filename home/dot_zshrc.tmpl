@@ -3,9 +3,6 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# Console output commands (now safe!)
-[[ $(command -v fastfetch) ]] && fastfetch --size-binary-prefix JEDEC
-
 # XDG Base Directories
 export XDG_DATA_HOME=$HOME/.local/share
 export XDG_CONFIG_HOME=$HOME/.config
@@ -104,37 +101,99 @@ bitwardenField() {
   bw get item "$item" | jq -r "$field" 2>/dev/null || echo ""
 }
 
-{{ if not .ephemeral -}}
-# Bitwarden CLI setup with snap preference
-if command -v bw >/dev/null 2>&1; then
-  BW_PATH=$(which bw)
+# Bitwarden session management
+bw_login_session() {
+  if ! command -v bw >/dev/null 2>&1; then
+    echo "❌ Bitwarden CLI not found"
+    return 1
+  fi
 
-  # Prefer snap installation
-  if [[ "$BW_PATH" == /snap/* ]]; then
-    if ! bw status | grep -q "authenticated" 2>/dev/null; then
-      echo "🔐 Bitwarden CLI (snap) available but not authenticated"
-      echo "Run 'bw login' to authenticate when ready"
-    else
-      if command -v jq >/dev/null 2>&1; then
-        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
-      fi
-    fi
-  elif [[ "$BW_PATH" == /mnt/* ]]; then
-    echo "⚠️  Found Windows Bitwarden CLI - use '/snap/bin/bw' for Linux version"
-  elif timeout 5 bw --version >/dev/null 2>&1; then
-    if ! bw status | grep -q "authenticated" 2>/dev/null; then
-      echo "🔐 Bitwarden CLI available but not authenticated"
-      echo "Run 'bw login' to authenticate when ready"
-    else
-      if command -v jq >/dev/null 2>&1; then
-        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
+  echo "🔐 Logging into Bitwarden..."
+  local session=$(bw login --raw 2>/dev/null)
+
+  if [[ $? -eq 0 && -n "$session" ]]; then
+    export BW_SESSION="$session"
+    mkdir -p "$HOME/.config"
+    echo "$session" > "$HOME/.config/bw-session"
+    chmod 600 "$HOME/.config/bw-session"
+    echo "✅ Bitwarden login successful"
+
+    # Export GitHub token if available
+    if command -v jq >/dev/null 2>&1; then
+      export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
+      if [[ -n "$GITHUB_ACCESS_TOKEN" ]]; then
+        echo "✅ GitHub token exported"
       fi
     fi
   else
-    echo "⚠️  Bitwarden CLI found but not working - try '/snap/bin/bw' instead"
+    echo "❌ Bitwarden login failed"
+    return 1
   fi
-else
-  echo "ℹ️  Bitwarden CLI not found - check installation scripts"
+}
+
+bw_unlock_session() {
+  if ! command -v bw >/dev/null 2>&1; then
+    echo "❌ Bitwarden CLI not found"
+    return 1
+  fi
+
+  echo "🔓 Unlocking Bitwarden vault..."
+  local session=$(bw unlock --raw 2>/dev/null)
+
+  if [[ $? -eq 0 && -n "$session" ]]; then
+    export BW_SESSION="$session"
+    mkdir -p "$HOME/.config"
+    echo "$session" > "$HOME/.config/bw-session"
+    chmod 600 "$HOME/.config/bw-session"
+    echo "✅ Bitwarden vault unlocked"
+
+    # Export GitHub token if available
+    if command -v jq >/dev/null 2>&1; then
+      export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
+      if [[ -n "$GITHUB_ACCESS_TOKEN" ]]; then
+        echo "✅ GitHub token exported"
+      fi
+    fi
+  else
+    echo "❌ Bitwarden unlock failed"
+    return 1
+  fi
+}
+
+bw_logout_session() {
+  if command -v bw >/dev/null 2>&1; then
+    bw logout >/dev/null 2>&1
+  fi
+  unset BW_SESSION
+  unset GITHUB_ACCESS_TOKEN
+  rm -f "$HOME/.config/bw-session"
+  echo "✅ Bitwarden session cleared"
+}
+
+# Aliases for convenience
+alias bwlogin='bw_login_session'
+alias bwunlock='bw_unlock_session'
+alias bwlogout='bw_logout_session'
+
+{{ if not .ephemeral -}}
+# Bitwarden CLI setup (silent during shell init)
+if command -v bw >/dev/null 2>&1; then
+  BW_PATH=$(which bw)
+
+  # Set up Bitwarden session management
+  if [[ "$BW_PATH" == /snap/* ]] || timeout 2 bw --version >/dev/null 2>&1; then
+    # Try to restore existing session
+    if [[ -f "$HOME/.config/bw-session" ]]; then
+      export BW_SESSION=$(cat "$HOME/.config/bw-session" 2>/dev/null)
+    fi
+
+    # Export GitHub token if authenticated
+    if [[ -n "$BW_SESSION" ]] && command -v jq >/dev/null 2>&1; then
+      if bw status 2>/dev/null | grep -q "authenticated"; then
+        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value' 2>/dev/null)"
+      fi
+    fi
+  fi
 fi
 {{ end -}}
 
@@ -153,5 +212,55 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 {{ end }}
+
+# Async shell initialization (runs after prompt is ready)
+async_shell_init() {
+  # Show system info with fastfetch
+  if command -v fastfetch >/dev/null 2>&1; then
+    fastfetch --size-binary-prefix JEDEC
+    echo ""
+  fi
+
+{{ if not .ephemeral -}}
+  # Bitwarden status check
+  if command -v bw >/dev/null 2>&1; then
+    BW_PATH=$(which bw)
+
+    if [[ "$BW_PATH" == /snap/* ]] || timeout 2 bw --version >/dev/null 2>&1; then
+      local bw_status=$(bw status 2>/dev/null)
+
+      if echo "$bw_status" | grep -q "unauthenticated"; then
+        echo "🔐 Bitwarden CLI available but not authenticated"
+        echo "Run 'bw login' to authenticate when ready"
+      elif echo "$bw_status" | grep -q "locked"; then
+        echo "🔒 Bitwarden vault is locked"
+        echo "Run 'bw unlock' to unlock your vault"
+      elif echo "$bw_status" | grep -q "authenticated"; then
+        echo "✅ Bitwarden CLI authenticated and ready"
+      fi
+    elif [[ "$BW_PATH" == /mnt/* ]]; then
+      echo "⚠️  Found Windows Bitwarden CLI - use '/snap/bin/bw' for Linux version"
+    else
+      echo "⚠️  Bitwarden CLI found but not working - try '/snap/bin/bw' instead"
+    fi
+  else
+    echo "ℹ️  Bitwarden CLI not found - check installation scripts"
+  fi
+{{ end -}}
+}
+
+# Run async initialization in background after shell loads
+if [[ -o interactive ]]; then
+  # Use zsh/zpty module for true async execution
+  zmodload zsh/zpty 2>/dev/null || {
+    # Fallback: simple background job
+    (async_shell_init &)
+  }
+
+  if (( $+modules[zsh/zpty] )); then
+    zpty async_init async_shell_init
+    zpty -r async_init
+  fi
+fi
 
 {{- /* vim: set filetype=zsh: */}}
