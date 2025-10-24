@@ -6,8 +6,6 @@
      "git"
      "git-lfs"
      "jq"
-     "nodejs"
-     "npm"
      "openssh-server"
      "shellcheck"
      "units"
@@ -82,6 +80,24 @@ for package in {{ $packages | join " " }}; do
         echo "$package is already installed"
     fi
 done
+
+# Install Node.js 20+ for Bitwarden CLI compatibility
+echo "Setting up Node.js 20+ for Bitwarden CLI..."
+if ! command -v node >/dev/null 2>&1 || [[ "$(node --version | cut -d'v' -f2 | cut -d'.' -f1)" -lt 20 ]]; then
+    echo "Installing Node.js 20+ via NodeSource..."
+
+    # Add NodeSource repository
+    curl -fsSL https://deb.nodesource.com/setup_20.x | {{ $sudo }}bash - || {
+        echo "Warning: Failed to add NodeSource repository"
+    }
+
+    # Install Node.js 20
+    {{ $sudo }}apt-get install -y nodejs || {
+        echo "Warning: Failed to install Node.js 20, will use snap for Bitwarden CLI"
+    }
+else
+    echo "Node.js $(node --version) is already installed"
+fi
 
 echo "Installing packages with fallbacks..."
 {{ range $pkg, $alternatives := $conditionalPackages }}

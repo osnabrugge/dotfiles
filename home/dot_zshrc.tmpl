@@ -24,9 +24,12 @@ if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -n "${WSL_INTEROP:-}" ]]; then
     export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v '/mnt/[a-z]/' | tr '\n' ':' | sed 's/:$//')
 fi
 
-# Add local npm global bin to PATH
+# Prioritize snap binaries and local installations
+export PATH="/snap/bin:$HOME/.local/bin:$PATH"
+
+# Add local npm global bin to PATH (but after snap)
 if [[ -d "$HOME/.local/npm-global/bin" ]]; then
-    export PATH="$HOME/.local/npm-global/bin:$PATH"
+    export PATH="$PATH:$HOME/.local/npm-global/bin"
 fi
 
 # Path setup (chezmoi template logic)
@@ -102,28 +105,36 @@ bitwardenField() {
 }
 
 {{ if not .ephemeral -}}
-# Bitwarden CLI setup with WSL awareness
+# Bitwarden CLI setup with snap preference
 if command -v bw >/dev/null 2>&1; then
   BW_PATH=$(which bw)
 
-  # Check if it's a Windows binary in WSL
-  if [[ "$BW_PATH" == /mnt/* ]]; then
-    echo "⚠️  Found Windows Bitwarden CLI - Linux version will be installed separately"
+  # Prefer snap installation
+  if [[ "$BW_PATH" == /snap/* ]]; then
+    if ! bw status | grep -q "authenticated" 2>/dev/null; then
+      echo "🔐 Bitwarden CLI (snap) available but not authenticated"
+      echo "Run 'bw login' to authenticate when ready"
+    else
+      if command -v jq >/dev/null 2>&1; then
+        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
+      fi
+    fi
+  elif [[ "$BW_PATH" == /mnt/* ]]; then
+    echo "⚠️  Found Windows Bitwarden CLI - use '/snap/bin/bw' for Linux version"
   elif timeout 5 bw --version >/dev/null 2>&1; then
     if ! bw status | grep -q "authenticated" 2>/dev/null; then
       echo "🔐 Bitwarden CLI available but not authenticated"
       echo "Run 'bw login' to authenticate when ready"
     else
-      # Export GitHub Access Token from Bitwarden, if possible
       if command -v jq >/dev/null 2>&1; then
         export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
       fi
     fi
   else
-    echo "⚠️  Bitwarden CLI found but not working - check installation"
+    echo "⚠️  Bitwarden CLI found but not working - try '/snap/bin/bw' instead"
   fi
 else
-  echo "ℹ️  Bitwarden CLI not found in Linux PATH - check installation scripts"
+  echo "ℹ️  Bitwarden CLI not found - check installation scripts"
 fi
 {{ end -}}
 
