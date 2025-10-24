@@ -13,14 +13,13 @@
      "units"
      "zsh" }}
 
-# Ubuntu version-specific packages
+# Ubuntu version-specific packages (excluding bitwarden-cli since it has its own installer)
 {{ $conditionalPackages := dict
      "bat" (list "bat" "batcat")
      "fd-find" (list "fd-find" "fdfind")
      "fzf" (list "fzf")
      "ripgrep" (list "ripgrep")
-     "libfuse2t64" (list "libfuse2t64" "libfuse2")
-     "bitwarden-cli" (list "bitwarden-cli" "bw") }}
+     "libfuse2t64" (list "libfuse2t64" "libfuse2") }}
 
 {{ $snaps := list }}
 {{ $classicSnaps := list }}
@@ -87,7 +86,9 @@ done
 echo "Installing packages with fallbacks..."
 {{ range $pkg, $alternatives := $conditionalPackages }}
 if ! dpkg -l | grep -qE "^ii  ({{ $alternatives | join "|" }}) "; then
-    install_package_with_fallback {{ range $alternatives }}"{{ . }}" {{ end }}
+    install_package_with_fallback {{ range $alternatives }}"{{ . }}" {{ end }} || {
+        echo "Skipping {{ $pkg }} - will try alternative installation methods later"
+    }
 else
     echo "One of {{ $alternatives | join "/" }} is already installed"
 fi
@@ -115,4 +116,5 @@ fi
 echo "Snap is not available on this system"
 {{ end }}
 
+echo "✅ Package installation complete"
 {{ end }}
