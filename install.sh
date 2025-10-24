@@ -1,8 +1,12 @@
 #!/bin/sh
+# filepath: install.sh
 
 set -e # -e: exit on error
 
+echo "🚀 Starting dotfiles installation..."
+
 if [ ! "$(command -v chezmoi)" ]; then
+  echo "📦 Installing chezmoi..."
   bin_dir="$HOME/.local/bin"
   chezmoi="$bin_dir/chezmoi"
   if [ "$(command -v curl)" ]; then
@@ -10,14 +14,18 @@ if [ ! "$(command -v chezmoi)" ]; then
   elif [ "$(command -v wget)" ]; then
     sh -c "$(wget -qO- https://git.io/chezmoi)" -- -b "$bin_dir"
   else
-    echo "To install chezmoi, you must have curl or wget installed." >&2
+    echo "❌ To install chezmoi, you must have curl or wget installed." >&2
     exit 1
   fi
+  echo "✅ chezmoi installed successfully"
 else
   chezmoi=chezmoi
+  echo "✅ chezmoi is already installed"
 fi
 
 # POSIX way to get script's dir: https://stackoverflow.com/a/29834779/12156188
 script_dir="$(cd -P -- "$(dirname -- "$(command -v -- "$0")")" && pwd -P)"
+
+echo "🔧 Initializing and applying dotfiles..."
 # exec: replace current process with chezmoi init
 exec "$chezmoi" init --apply "--source=$script_dir"

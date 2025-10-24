@@ -1,20 +1,26 @@
 #!/bin/bash
 {{ if or (eq .osid "linux-debian") (eq .osid "linux-raspbian") (eq .osid "linux-ubuntu") }}
 {{ $packages := list
-     "bat"
      "build-essential"
      "curl"
-     "fd-find"
-     "fzf"
      "git"
      "git-lfs"
      "jq"
-     "libfuse2t64"
+     "nodejs"
+     "npm"
      "openssh-server"
-     "ripgrep"
      "shellcheck"
      "units"
      "zsh" }}
+
+# Ubuntu version-specific packages
+{{ $conditionalPackages := dict
+     "bat" (list "bat" "batcat")
+     "fd-find" (list "fd-find" "fdfind")
+     "fzf" (list "fzf")
+     "ripgrep" (list "ripgrep")
+     "libfuse2t64" (list "libfuse2t64" "libfuse2") }}
+
 {{ $snaps := list }}
 {{ $classicSnaps := list }}
 
@@ -46,16 +52,66 @@
 
 set -eufo pipefail
 
-{{ $sudo }}apt-get update
-{{ $sudo }}apt-get install -y {{ $packages | join " " }}
+# Function to try installing a package with fallback names
+install_package_with_fallback() {
+    local package_names=("$@")
+    for pkg in "${package_names[@]}"; do
+        if apt-cache show "$pkg" >/dev/null 2>&1; then
+            echo "Installing $pkg..."
+            if {{ $sudo }}apt-get install -y "$pkg"; then
+                return 0
+            fi
+        fi
+    done
+    echo "Warning: Could not install any variant of: ${package_names[*]}"
+    return 1
+}
+
+echo "Updating package lists..."
+{{ $sudo }}apt-get update -qq
+
+echo "Installing basic packages..."
+for package in {{ $packages | join " " }}; do
+    if ! dpkg -l | grep -q "^ii  $package "; then
+        echo "Installing $package..."
+        {{ $sudo }}apt-get install -y "$package" || {
+            echo "Warning: Failed to install $package, continuing..."
+            continue
+        }
+    else
+        echo "$package is already installed"
+    fi
+done
+
+echo "Installing packages with fallbacks..."
+{{ range $pkg, $alternatives := $conditionalPackages }}
+if ! dpkg -l | grep -qE "^ii  ({{ $alternatives | join "|" }}) "; then
+    install_package_with_fallback {{ range $alternatives }}"{{ . }}" {{ end }}
+else
+    echo "One of {{ $alternatives | join "/" }} is already installed"
+fi
+{{ end }}
 
 {{ if lookPath "snap" }}
+echo "Installing snap packages..."
 {{   range $snaps }}
-( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install {{ . }}
+if ! snap list | grep -q "^{{ . }} "; then
+    echo "Installing snap: {{ . }}"
+    {{ $sudo }}snap install {{ . }} || echo "Warning: Failed to install snap {{ . }}"
+else
+    echo "Snap {{ . }} is already installed"
+fi
 {{   end }}
 {{   range $classicSnaps }}
-( snap info {{ . }} | grep -q ^installed: ) || {{ $sudo }}snap install --classic {{ . }}
+if ! snap list | grep -q "^{{ . }} "; then
+    echo "Installing classic snap: {{ . }}"
+    {{ $sudo }}snap install --classic {{ . }} || echo "Warning: Failed to install classic snap {{ . }}"
+else
+    echo "Classic snap {{ . }} is already installed"
+fi
 {{   end }}
+{{ else }}
+echo "Snap is not available on this system"
 {{ end }}
 
 {{ end }}

@@ -1,0 +1,23 @@
+{{ if eq .osid "linux-ubuntu" -}}
+#!/bin/bash
+
+set -eufo pipefail
+
+echo "Setting up locale..."
+
+# Generate locale if it doesn't exist
+if ! locale -a | grep -q "en_CA.utf8\|en_CA.UTF-8"; then
+    echo "Generating en_CA.UTF-8 locale..."
+    sudo locale-gen en_CA.UTF-8 || {
+        echo "Warning: Failed to generate locale, trying en_US.UTF-8..."
+        sudo locale-gen en_US.UTF-8 || echo "Warning: Failed to generate any UTF-8 locale"
+    }
+fi
+
+# Update locale
+sudo update-locale LANG=en_CA.UTF-8 LC_ALL=en_CA.UTF-8 || {
+    echo "Warning: Failed to update locale"
+}
+
+echo "Locale setup complete"
+{{ end -}}

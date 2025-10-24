@@ -17,12 +17,33 @@
 
 set -eufo pipefail
 
-{{ $sudo }}apt-get remove -y {{ $packages | join " " }}
+echo "Removing unwanted packages..."
+for package in {{ $packages | join " " }}; do
+    if dpkg -l | grep -q "^ii  $package "; then
+        echo "Removing $package..."
+        {{ $sudo }}apt-get remove -y "$package" || {
+            echo "Warning: Failed to remove $package, continuing..."
+            continue
+        }
+    else
+        echo "$package is not installed, skipping"
+    fi
+done
 
 {{ if lookPath "snap" }}
+echo "Removing unwanted snap packages..."
 {{   range $snaps }}
-snap info {{ . }} && {{ $sudo }}snap remove {{ . }}
+if snap list | grep -q "^{{ . }} "; then
+    echo "Removing snap: {{ . }}"
+    {{ $sudo }}snap remove {{ . }} || echo "Warning: Failed to remove snap {{ . }}"
+else
+    echo "Snap {{ . }} is not installed, skipping"
+fi
 {{   end }}
 {{ end }}
+
+echo "Cleaning up..."
+{{ $sudo }}apt-get autoremove -y || echo "Warning: Failed to autoremove packages"
+{{ $sudo }}apt-get autoclean || echo "Warning: Failed to autoclean"
 
 {{ end }}

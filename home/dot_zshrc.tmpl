@@ -101,20 +101,25 @@ if ! command -v bw >/dev/null 2>&1; then
 fi
 
 {{ if not .ephemeral -}}
-# Bitwarden CLI login and GitHub token export
+# Bitwarden CLI setup
 if command -v bw >/dev/null 2>&1; then
-  if ! bw status | grep -q "authenticated"; then
-    echo "🔐 Logging into Bitwarden CLI..."
-    bw login --apikey
-  fi
-  # Export GitHub Access Token from Bitwarden, if possible
-  if command -v jq >/dev/null 2>&1; then
-    export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
+  # Check if bw command actually works (not just exists)
+  if bw --version >/dev/null 2>&1; then
+    if ! bw status | grep -q "authenticated" 2>/dev/null; then
+      echo "🔐 Bitwarden CLI available but not authenticated"
+      echo "Run 'bw login' to authenticate when ready"
+    else
+      # Export GitHub Access Token from Bitwarden, if possible
+      if command -v jq >/dev/null 2>&1; then
+        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value' 2>/dev/null || echo '')"
+      fi
+    fi
   else
-    echo "jq not found, cannot parse GitHub token from Bitwarden."
+    echo "⚠️  Bitwarden CLI found but not working properly (Node.js issue?)"
+    echo "Consider installing Node.js in WSL: sudo apt install nodejs npm"
   fi
 else
-  echo "Bitwarden CLI (bw) not found; skipping secrets login."
+  echo "ℹ️  Bitwarden CLI not found - secrets management disabled"
 fi
 {{ end -}}
 

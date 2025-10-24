@@ -3,5 +3,40 @@
 
 set -eufo pipefail
 
-chsh -s /usr/bin/zsh
+# Check if zsh is installed
+if ! command -v zsh >/dev/null 2>&1; then
+    echo "Error: zsh is not installed. Please install zsh first."
+    exit 1
+fi
+
+# Check if zsh is already the default shell
+if [ "$SHELL" = "/usr/bin/zsh" ] || [ "$SHELL" = "/bin/zsh" ]; then
+    echo "zsh is already the default shell"
+    exit 0
+fi
+
+# Check if /usr/bin/zsh exists
+if [ ! -f "/usr/bin/zsh" ]; then
+    echo "Error: /usr/bin/zsh not found. Zsh may be installed in a different location."
+    zsh_path=$(which zsh)
+    if [ -n "$zsh_path" ]; then
+        echo "Found zsh at: $zsh_path"
+        echo "Changing shell to: $zsh_path"
+        chsh -s "$zsh_path" || {
+            echo "Failed to change shell. You may need to run: chsh -s $zsh_path"
+            exit 1
+        }
+    else
+        echo "Could not find zsh installation"
+        exit 1
+    fi
+else
+    echo "Changing shell to zsh..."
+    chsh -s /usr/bin/zsh || {
+        echo "Failed to change shell. You may need to run: chsh -s /usr/bin/zsh"
+        exit 1
+    }
+fi
+
+echo "Shell changed successfully. Please log out and log back in for changes to take effect."
 {{ end -}}

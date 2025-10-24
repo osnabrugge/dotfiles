@@ -10,7 +10,7 @@
      "ms-vscode-remote.remote-containers"
      "ms-vscode-remote.remote-ssh"
      "ms-vscode-remote.remote-ssh-edit"
-     "ms-vscode-remote.vscode-remote-extensionpack"
+     "ms-vscode-remote.remote-extensionpack"
      "ms-vscode.cpptools"
      "redhat.vscode-yaml"
      "stkb.rewrap"
@@ -20,10 +20,25 @@
 
 set -euo pipefail
 
+# Check if code command is available
+if ! command -v code >/dev/null 2>&1; then
+    echo "VSCode is not installed or not in PATH, skipping extension installation"
+    exit 0
+fi
+
+echo "Installing VSCode extensions..."
 {{ range $extensions }}
+echo "Checking extension: {{ . }}"
 if ! code --list-extensions | grep -q "^{{ . }}$"; then
-  code --force --install-extension {{ . }}
+    echo "Installing extension: {{ . }}"
+    code --force --install-extension {{ . }} || {
+        echo "Warning: Failed to install extension {{ . }}"
+        continue
+    }
+else
+    echo "Extension {{ . }} is already installed"
 fi
 {{ end }}
 
+echo "VSCode extension installation complete"
 {{ end }}
