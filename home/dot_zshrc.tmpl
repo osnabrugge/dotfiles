@@ -18,6 +18,18 @@ export LC_ALL=en_CA.UTF-8
 export TERM=xterm-256color
 
 # Path setup (chezmoi template logic)
+# WSL Path Management - prioritize Linux binaries over Windows
+if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -n "${WSL_INTEROP:-}" ]]; then
+    # Remove Windows paths that might interfere with Linux development tools
+    export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v '/mnt/[a-z]/' | tr '\n' ':' | sed 's/:$//')
+fi
+
+# Add local npm global bin to PATH
+if [[ -d "$HOME/.local/npm-global/bin" ]]; then
+    export PATH="$HOME/.local/npm-global/bin:$PATH"
+fi
+
+# Path setup (chezmoi template logic)
 {{- $paths := list }}
 {{- $homeDir := .chezmoi.homeDir }}
 {{- range $_, $relPath := list "bin" "usr/local/bin" "usr/local/go/bin" ".cargo/bin" ".local/bin" }}
@@ -90,10 +102,14 @@ bitwardenField() {
 }
 
 {{ if not .ephemeral -}}
-# Bitwarden CLI setup with better error handling
+# Bitwarden CLI setup with WSL awareness
 if command -v bw >/dev/null 2>&1; then
-  # Check if bw command actually works (not just exists)
-  if timeout 5 bw --version >/dev/null 2>&1; then
+  BW_PATH=$(which bw)
+
+  # Check if it's a Windows binary in WSL
+  if [[ "$BW_PATH" == /mnt/* ]]; then
+    echo "⚠️  Found Windows Bitwarden CLI - Linux version will be installed separately"
+  elif timeout 5 bw --version >/dev/null 2>&1; then
     if ! bw status | grep -q "authenticated" 2>/dev/null; then
       echo "🔐 Bitwarden CLI available but not authenticated"
       echo "Run 'bw login' to authenticate when ready"
@@ -104,17 +120,10 @@ if command -v bw >/dev/null 2>&1; then
       fi
     fi
   else
-    # Check if Node.js is actually available
-    if command -v node >/dev/null 2>&1; then
-      echo "🔄 Bitwarden CLI found but may need PATH update"
-      echo "Try running 'hash -r' or restart your shell"
-    else
-      echo "⚠️  Bitwarden CLI found but Node.js not in PATH"
-      echo "This is usually fixed by restarting your shell after package installation"
-    fi
+    echo "⚠️  Bitwarden CLI found but not working - check installation"
   fi
 else
-  echo "ℹ️  Bitwarden CLI not found - will be installed by setup scripts"
+  echo "ℹ️  Bitwarden CLI not found in Linux PATH - check installation scripts"
 fi
 {{ end -}}
 

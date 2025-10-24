@@ -3,64 +3,85 @@
 
 set -eufo pipefail
 
-echo "Setting up Bitwarden CLI..."
+echo "Setting up Bitwarden CLI for Linux..."
 
-# Check if already installed
-if command -v bw >/dev/null 2>&1 && bw --version >/dev/null 2>&1; then
-    echo "✅ Bitwarden CLI is already installed and working"
-    exit 0
+# Force Linux PATH to take precedence over Windows paths in WSL
+export PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin:$HOME/.local/npm-global/bin:$PATH"
+
+# Remove any Windows Node.js/npm from PATH in WSL
+if [[ -n "${WSL_DISTRO_NAME:-}" ]] || [[ -n "${WSL_INTEROP:-}" ]]; then
+    echo "🐧 Detected WSL environment - prioritizing Linux binaries"
+    # Filter out Windows paths that might interfere
+    export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v '/mnt/[a-z]/' | tr '\n' ':' | sed 's/:$//')
+    export PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin:$HOME/.local/npm-global/bin:$PATH"
 fi
 
-# Method 1: Try package manager first
-if command -v apt >/dev/null 2>&1; then
-    echo "Trying to install Bitwarden CLI via apt..."
-    if sudo apt install -y bitwarden-cli 2>/dev/null; then
-        echo "✅ Installed Bitwarden CLI via apt"
+# Check if we have a working Linux installation
+if command -v bw >/dev/null 2>&1; then
+    BW_PATH=$(which bw)
+    echo "Found Bitwarden CLI at: $BW_PATH"
+
+    # Check if it's a Linux binary (not Windows)
+    if [[ "$BW_PATH" == /mnt/* ]]; then
+        echo "⚠️  Found Windows Bitwarden CLI, installing Linux version..."
+    elif timeout 5 bw --version >/dev/null 2>&1; then
+        echo "✅ Linux Bitwarden CLI is already installed and working"
         exit 0
     else
-        echo "Package not available via apt, trying other methods..."
+        echo "⚠️  Found Bitwarden CLI but it's not working, reinstalling..."
     fi
 fi
 
-# Method 2: Try snap
-if command -v snap >/dev/null 2>&1; then
-    echo "Trying to install Bitwarden CLI via snap..."
-    if sudo snap install bw 2>/dev/null; then
-        echo "✅ Installed Bitwarden CLI via snap"
-        exit 0
-    else
-        echo "Snap installation failed, trying npm..."
+# Ensure we're using Linux Node.js and npm
+if command -v node >/dev/null 2>&1; then
+    NODE_PATH=$(which node)
+    if [[ "$NODE_PATH" == /mnt/* ]]; then
+        echo "⚠️  Detected Windows Node.js, this may cause issues"
+        echo "Using Linux Node.js from apt installation"
     fi
 fi
 
-# Method 3: Try npm with proper setup
+# Method 1: Try npm with Linux Node.js (most reliable for WSL)
 if command -v npm >/dev/null 2>&1; then
-    echo "Setting up npm for local installations..."
+    NPM_PATH=$(which npm)
+    echo "Using npm at: $NPM_PATH"
 
-    # Create local npm directory
-    mkdir -p "$HOME/.local/npm-global"
+    if [[ "$NPM_PATH" != /mnt/* ]]; then  # Ensure we're using Linux npm
+        echo "Setting up npm for local installations..."
 
-    # Configure npm
-    npm config set prefix "$HOME/.local/npm-global"
+        # Create local npm directory
+        mkdir -p "$HOME/.local/npm-global"
 
-    # Add to PATH for current session
-    export PATH="$HOME/.local/npm-global/bin:$PATH"
+        # Configure npm to use local directory
+        npm config set prefix "$HOME/.local/npm-global"
 
-    # Install Bitwarden CLI
-    if npm install -g @bitwarden/cli; then
-        echo "✅ Successfully installed Bitwarden CLI via npm"
+        # Add to PATH for current session
+        export PATH="$HOME/.local/npm-global/bin:$PATH"
 
-        # Add to shell profile for persistence
-        if ! grep -q "npm-global/bin" "$HOME/.zshrc" 2>/dev/null; then
-            echo 'export PATH="$HOME/.local/npm-global/bin:$PATH"' >> "$HOME/.zshrc"
+        # Install Bitwarden CLI
+        echo "Installing Bitwarden CLI via Linux npm..."
+        if npm install -g @bitwarden/cli; then
+            echo "✅ Successfully installed Bitwarden CLI via npm"
+
+            # Add to shell profiles for persistence
+            for profile in "$HOME/.zshrc" "$HOME/.bashrc"; do
+                if [[ -f "$profile" ]] && ! grep -q "npm-global/bin" "$profile" 2>/dev/null; then
+                    echo 'export PATH="$HOME/.local/npm-global/bin:$PATH"' >> "$profile"
+                fi
+            done
+
+            # Test the installation
+            if timeout 5 "$HOME/.local/npm-global/bin/bw" --version >/dev/null 2>&1; then
+                echo "✅ Bitwarden CLI test successful"
+                exit 0
+            fi
+        else
+            echo "❌ npm installation failed, trying alternative methods..."
         fi
-        exit 0
-    else
-        echo "❌ npm installation failed"
     fi
 fi
 
-# Method 4: Direct download (fallback)
+# Method 2: Direct download (most reliable fallback)
 echo "Trying direct download method..."
 BW_VERSION=$(curl -s https://api.github.com/repos/bitwarden/clients/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/cli-v//')
 
@@ -77,21 +98,34 @@ if [ -n "$BW_VERSION" ]; then
     esac
 
     # Download and install
-    wget -O "/tmp/bw-linux-${BW_ARCH}.zip" "https://github.com/bitwarden/clients/releases/download/cli-v${BW_VERSION}/bw-linux-${BW_ARCH}-${BW_VERSION}.zip"
+    if wget -O "/tmp/bw-linux-${BW_ARCH}.zip" "https://github.com/bitwarden/clients/releases/download/cli-v${BW_VERSION}/bw-linux-${BW_ARCH}-${BW_VERSION}.zip"; then
+        if unzip -o "/tmp/bw-linux-${BW_ARCH}.zip" -d /tmp/ && [ -f "/tmp/bw" ]; then
+            chmod +x /tmp/bw
+            mkdir -p "$HOME/.local/bin"
+            mv /tmp/bw "$HOME/.local/bin/"
+            rm -f "/tmp/bw-linux-${BW_ARCH}.zip"
 
-    if [ -f "/tmp/bw-linux-${BW_ARCH}.zip" ]; then
-        unzip -o "/tmp/bw-linux-${BW_ARCH}.zip" -d /tmp/
-        chmod +x /tmp/bw
-        mkdir -p "$HOME/.local/bin"
-        mv /tmp/bw "$HOME/.local/bin/"
-        rm -f "/tmp/bw-linux-${BW_ARCH}.zip"
-        echo "✅ Successfully installed Bitwarden CLI via direct download"
-    else
-        echo "❌ Failed to download Bitwarden CLI"
+            # Test the installation
+            if timeout 5 "$HOME/.local/bin/bw" --version >/dev/null 2>&1; then
+                echo "✅ Successfully installed Bitwarden CLI via direct download"
+                exit 0
+            fi
+        fi
     fi
-else
-    echo "❌ Could not determine latest Bitwarden CLI version"
 fi
 
-echo "Bitwarden CLI setup complete"
+# Method 3: Try snap as last resort
+if command -v snap >/dev/null 2>&1; then
+    echo "Trying to install Bitwarden CLI via snap..."
+    if sudo snap install bw 2>/dev/null; then
+        echo "✅ Installed Bitwarden CLI via snap"
+        exit 0
+    fi
+fi
+
+echo "⚠️  Could not install Bitwarden CLI automatically"
+echo "You can install it manually with one of these methods:"
+echo "  1. npm install -g @bitwarden/cli"
+echo "  2. sudo snap install bw"
+echo "  3. Download from: https://github.com/bitwarden/clients/releases"
 {{ end -}}
