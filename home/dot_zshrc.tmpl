@@ -111,8 +111,8 @@ bw_login_session() {
   echo "🔐 Logging into Bitwarden..."
 
   # Check if already logged in but locked
-  local status=$(bw status 2>/dev/null)
-  if echo "$status" | grep -q "locked"; then
+  local bw_status=$(bw status 2>/dev/null)
+  if echo "$bw_status" | grep -q "locked"; then
     echo "ℹ️  Already logged in but vault is locked. Use 'bwunlock' instead."
     return bw_unlock_session
   fi
@@ -143,6 +143,9 @@ bw_login_session() {
     else
       echo "⚠️  Login successful but couldn't extract session. Please run:"
       echo "export BW_SESSION=\"<session_key_from_above>\""
+      echo ""
+      echo "Login output:"
+      echo "$login_output"
     fi
   else
     echo "❌ Bitwarden login failed"
@@ -181,15 +184,30 @@ bw_unlock_session() {
     return 1
   fi
 
-  echo "🔓 Unlocking Bitwarden vault..."
-  local session=$(bw unlock --raw 2>/dev/null)
+  # Check current status
+  local bw_status=$(bw status 2>/dev/null)
+  if echo "$bw_status" | grep -q "unauthenticated"; then
+    echo "❌ Not logged in. Use 'bwlogin' first."
+    return 1
+  fi
 
-  if [[ $? -eq 0 && -n "$session" ]]; then
-    export BW_SESSION="$session"
+  if echo "$bw_status" | grep -q "authenticated"; then
+    echo "✅ Vault is already unlocked"
+    return 0
+  fi
+
+  echo "🔓 Unlocking Bitwarden vault..."
+
+  # Try to unlock - this will prompt for master password
+  local unlock_output=$(bw unlock --raw 2>/dev/null)
+  local exit_code=$?
+
+  if [[ $exit_code -eq 0 && -n "$unlock_output" ]]; then
+    export BW_SESSION="$unlock_output"
     mkdir -p "$HOME/.config"
-    echo "$session" > "$HOME/.config/bw-session"
+    echo "$unlock_output" > "$HOME/.config/bw-session"
     chmod 600 "$HOME/.config/bw-session"
-    echo "✅ Bitwarden vault unlocked"
+    echo "✅ Bitwarden vault unlocked and session saved"
 
     # Export GitHub token if available
     if command -v jq >/dev/null 2>&1; then
@@ -200,6 +218,9 @@ bw_unlock_session() {
     fi
   else
     echo "❌ Bitwarden unlock failed"
+    # Clear any invalid session
+    unset BW_SESSION
+    rm -f "$HOME/.config/bw-session"
     return 1
   fi
 }
@@ -250,14 +271,22 @@ export NVM_DIR="$HOME/.nvm"
 
 # Async shell initialization (runs after prompt is ready)
 async_shell_init() {
-  # Small delay to ensure prompt is fully ready
-  sleep 0.5
+  # Longer delay to ensure prompt is fully ready and visible
+  sleep 1
+
+  # Clear the line and show system info
+  echo ""
+  echo "🖥️  System Information:"
+  echo "====================="
 
   # Show system info with fastfetch
   if command -v fastfetch >/dev/null 2>&1; then
     fastfetch --size-binary-prefix JEDEC
-    echo ""
   fi
+
+  echo ""
+  echo "🔐 Security Status:"
+  echo "=================="
 
 {{ if not .ephemeral -}}
   # Bitwarden status check
@@ -269,10 +298,10 @@ async_shell_init() {
 
       if echo "$bw_status" | grep -q "unauthenticated"; then
         echo "🔐 Bitwarden CLI available but not authenticated"
-        echo "Run 'bwlogin' to authenticate when ready"
+        echo "   Run 'bwlogin' to authenticate when ready"
       elif echo "$bw_status" | grep -q "locked"; then
         echo "🔒 Bitwarden vault is locked"
-        echo "Run 'bwunlock' to unlock your vault"
+        echo "   Run 'bwunlock' to unlock your vault"
       elif echo "$bw_status" | grep -q "authenticated"; then
         echo "✅ Bitwarden CLI authenticated and ready"
         if [[ -n "$GITHUB_ACCESS_TOKEN" ]]; then
@@ -288,6 +317,35 @@ async_shell_init() {
     echo "ℹ️  Bitwarden CLI not found - check installation scripts"
   fi
 {{ end -}}
+
+  echo ""
+  echo "🚀 Development environment ready!"
+  echo "================================"
+  echo ""
+}
+
+sysinfo() {
+  echo "🖥️  System Information:"
+  echo "====================="
+  if command -v fastfetch >/dev/null 2>&1; then
+    fastfetch --size-binary-prefix JEDEC
+  fi
+  echo ""
+
+  if command -v bw >/dev/null 2>&1; then
+    local bw_status=$(bw status 2>/dev/null)
+    echo "🔐 Bitwarden Status:"
+    echo "=================="
+
+    if echo "$bw_status" | grep -q "authenticated"; then
+      echo "✅ Authenticated and ready"
+    elif echo "$bw_status" | grep -q "locked"; then
+      echo "🔒 Logged in but locked - run 'bwunlock'"
+    else
+      echo "🔐 Not authenticated - run 'bwlogin'"
+    fi
+  fi
+  echo ""
 }
 
 # Run async initialization in background after shell loads
