@@ -90,10 +90,17 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply osnabrugge
 ```
 
 **What to expect:**
+
 1. You'll be prompted to configure machine type (headless/ephemeral)
 2. You'll need to enter your sudo password for package installation
 3. After installation, **log out and back in** to activate zsh as your default shell
 4. Bitwarden CLI will be installed automatically
+
+**Bitwarden usage instructiopns:**
+
+1. For fresh login: Use bwlogin (not bw login)
+2. For unlock: Use bwunlock
+3. For logout: Use bwlogout
 
 ### Manual Installation
 

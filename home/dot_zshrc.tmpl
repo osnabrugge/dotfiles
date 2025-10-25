@@ -109,26 +109,70 @@ bw_login_session() {
   fi
 
   echo "🔐 Logging into Bitwarden..."
-  local session=$(bw login --raw 2>/dev/null)
 
-  if [[ $? -eq 0 && -n "$session" ]]; then
-    export BW_SESSION="$session"
-    mkdir -p "$HOME/.config"
-    echo "$session" > "$HOME/.config/bw-session"
-    chmod 600 "$HOME/.config/bw-session"
-    echo "✅ Bitwarden login successful"
+  # Check if already logged in but locked
+  local status=$(bw status 2>/dev/null)
+  if echo "$status" | grep -q "locked"; then
+    echo "ℹ️  Already logged in but vault is locked. Use 'bwunlock' instead."
+    return bw_unlock_session
+  fi
 
-    # Export GitHub token if available
-    if command -v jq >/dev/null 2>&1; then
-      export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
-      if [[ -n "$GITHUB_ACCESS_TOKEN" ]]; then
-        echo "✅ GitHub token exported"
+  # Attempt login and capture the session from output
+  local login_output=$(bw login 2>&1)
+  local exit_code=$?
+
+  if [[ $exit_code -eq 0 ]]; then
+    # Extract session from the login output
+    local session=$(echo "$login_output" | grep -o 'BW_SESSION="[^"]*"' | sed 's/BW_SESSION="\([^"]*\)"/\1/' | head -1)
+
+    if [[ -n "$session" ]]; then
+      export BW_SESSION="$session"
+      mkdir -p "$HOME/.config"
+      echo "$session" > "$HOME/.config/bw-session"
+      chmod 600 "$HOME/.config/bw-session"
+      echo "✅ Bitwarden login successful and session saved"
+
+      # Export GitHub token if available
+      if command -v jq >/dev/null 2>&1; then
+        sleep 1  # Brief pause for session to be fully active
+        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value')"
+        if [[ -n "$GITHUB_ACCESS_TOKEN" ]]; then
+          echo "✅ GitHub token exported"
+        fi
       fi
+    else
+      echo "⚠️  Login successful but couldn't extract session. Please run:"
+      echo "export BW_SESSION=\"<session_key_from_above>\""
     fi
   else
     echo "❌ Bitwarden login failed"
+    echo "$login_output"
     return 1
   fi
+}
+
+bw_restore_session() {
+  if [[ -f "$HOME/.config/bw-session" ]]; then
+    local saved_session=$(cat "$HOME/.config/bw-session" 2>/dev/null)
+    if [[ -n "$saved_session" ]]; then
+      export BW_SESSION="$saved_session"
+
+      # Test if the session is still valid
+      if bw status 2>/dev/null | grep -q "authenticated"; then
+        # Export GitHub token if available
+        if command -v jq >/dev/null 2>&1; then
+          export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value' 2>/dev/null)"
+        fi
+        return 0
+      else
+        # Session expired, remove it
+        rm -f "$HOME/.config/bw-session"
+        unset BW_SESSION
+        return 1
+      fi
+    fi
+  fi
+  return 1
 }
 
 bw_unlock_session() {
@@ -182,17 +226,8 @@ if command -v bw >/dev/null 2>&1; then
 
   # Set up Bitwarden session management
   if [[ "$BW_PATH" == /snap/* ]] || timeout 2 bw --version >/dev/null 2>&1; then
-    # Try to restore existing session
-    if [[ -f "$HOME/.config/bw-session" ]]; then
-      export BW_SESSION=$(cat "$HOME/.config/bw-session" 2>/dev/null)
-    fi
-
-    # Export GitHub token if authenticated
-    if [[ -n "$BW_SESSION" ]] && command -v jq >/dev/null 2>&1; then
-      if bw status 2>/dev/null | grep -q "authenticated"; then
-        export GITHUB_ACCESS_TOKEN="$(bitwardenField 'GITHUB_TOKEN' '.CLI.value' 2>/dev/null)"
-      fi
-    fi
+    # Try to restore existing session silently
+    bw_restore_session >/dev/null 2>&1
   fi
 fi
 {{ end -}}
@@ -215,6 +250,9 @@ export NVM_DIR="$HOME/.nvm"
 
 # Async shell initialization (runs after prompt is ready)
 async_shell_init() {
+  # Small delay to ensure prompt is fully ready
+  sleep 0.5
+
   # Show system info with fastfetch
   if command -v fastfetch >/dev/null 2>&1; then
     fastfetch --size-binary-prefix JEDEC
@@ -231,12 +269,15 @@ async_shell_init() {
 
       if echo "$bw_status" | grep -q "unauthenticated"; then
         echo "🔐 Bitwarden CLI available but not authenticated"
-        echo "Run 'bw login' to authenticate when ready"
+        echo "Run 'bwlogin' to authenticate when ready"
       elif echo "$bw_status" | grep -q "locked"; then
         echo "🔒 Bitwarden vault is locked"
-        echo "Run 'bw unlock' to unlock your vault"
+        echo "Run 'bwunlock' to unlock your vault"
       elif echo "$bw_status" | grep -q "authenticated"; then
         echo "✅ Bitwarden CLI authenticated and ready"
+        if [[ -n "$GITHUB_ACCESS_TOKEN" ]]; then
+          echo "✅ GitHub token available"
+        fi
       fi
     elif [[ "$BW_PATH" == /mnt/* ]]; then
       echo "⚠️  Found Windows Bitwarden CLI - use '/snap/bin/bw' for Linux version"
