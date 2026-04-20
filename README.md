@@ -1,15 +1,12 @@
 # 🚀 dotfiles
 
-<div align="center">
-
 ![GitHub last commit](https://img.shields.io/github/last-commit/osnabrugge/dotfiles)
 ![License](https://img.shields.io/github/license/osnabrugge/dotfiles)
 [![Powered by Chezmoi](https://img.shields.io/badge/powered%20by-chezmoi-blue)](https://github.com/twpayne/chezmoi)
 
-**Sean's personal system configuration - crafted with care and managed with precision**
+Sean's personal system configuration - crafted with care and managed with precision
 
-<img src="https://raw.githubusercontent.com/twpayne/chezmoi/master/assets/logo-144px.png" width="80" />
-</div>
+![Chezmoi logo](https://raw.githubusercontent.com/twpayne/chezmoi/master/assets/logo-144px.png)
 
 ## 📋 Table of Contents
 
@@ -52,6 +49,7 @@ These dotfiles represent my ideal development environment, optimized for product
 - Sudo access for package installation
 
 **Optional (installed automatically):**
+
 - [`chezmoi`](https://github.com/twpayne/chezmoi) - installed by the setup command
 - [`Bitwarden CLI`](https://bitwarden.com/help/cli/) - installed during setup
 - Zsh - installed and configured automatically
@@ -59,7 +57,7 @@ These dotfiles represent my ideal development environment, optimized for product
 
 ## 📁 Directory Structure
 
-```
+```text
 dotfiles/
 ├── README.md                   # This documentation
 ├── .github/                    # GitHub specific configuration
@@ -143,7 +141,7 @@ The setup scripts will securely fetch necessary credentials during installation.
 ## 🧩 Components
 
 | Component | Purpose |
-|-----------|---------|
+| --------- | ------- |
 | Hammerspoon | macOS automation and window management |
 | Oh-My-Zsh | Zsh configuration framework |
 | SSH | Secure remote connections |
@@ -182,6 +180,4 @@ These dotfiles are licensed under the MIT License - see the [LICENSE](LICENSE) f
 
 ---
 
-<div align="center">
-  <i>⚙️ Crafted with care for optimal development environments ⚙️</i>
-</div>
+⚙️ Crafted with care for optimal development environments ⚙️
