@@ -30,13 +30,13 @@
 {{-   $personal = false -}}
 
 {{/* detect personal machines */}}
-{{- else if eq $hostname "desktop01" -}}
+{{- else if eq $hostname "desktop" -}}
 {{-   $headless = false -}}
 {{-   $ephemeral = false -}}
 {{-   $personal = true -}}
 
 {{/* detect headless machines */}}
-{{- else if (or (hasPrefix $hostname "pi") (hasPrefix $hostname "nas") (hasPrefix $hostname "fw") (hasPrefix $hostname "pve") (hasPrefix $hostname "kvm") (hasPrefix $hostname "fdm")) -}}
+{{- else if (or (hasPrefix $hostname "pi") (hasPrefix $hostname "nas") (hasPrefix $hostname "gw") (hasPrefix $hostname "pve") (hasPrefix $hostname "kvm") (hasPrefix $hostname "fdm")) -}}
 {{-   $headless = true -}}
 {{-   $ephemeral = false -}}
 {{-   $personal = true -}}
@@ -54,6 +54,9 @@
 {{- if $work -}}
 {{-   $email = "work@example.com" -}}
 {{- end -}}
+{{- if and (not $ephemeral) stdinIsATTY -}}
+{{-   $email = promptStringOnce . "email" "Provide your email address" $email -}}
+{{- end -}}
 
 [data]
     ephemeral = {{ $ephemeral }}
@@ -64,8 +67,9 @@
     personal = {{ $personal }}
     osid = {{ $osID | quote }}
     zshPlugins = [
-        "per-directory-history",
-        "vi-mode",
+        "command-not-found",
+        "copyfile",
+        "zsh-autosuggestions",
         "zsh-syntax-highlighting",
     ]
 
