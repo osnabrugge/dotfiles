@@ -22,7 +22,7 @@
 {{- end -}}
 
 {{/* detect work machines */}}
-{{- $hostname := .chezmoi.hostname -}}
+{{- $hostname := lower .chezmoi.hostname -}}
 {{- if eq $hostname "seanvan-laptop" -}}
 {{-   $work = true -}}
 {{-   $headless = false -}}
