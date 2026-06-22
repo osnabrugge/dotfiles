@@ -1,28 +1,8 @@
-{{ if and (or (eq .osid "linux-pop") (eq .osid "linux-ubuntu")) (not .ephemeral) -}}
+#!/bin/sh
+{{- if and (eq .osid "linux-pop" "linux-ubuntu") (not .ephemeral) }}
+set -u
 
-#!/bin/bash
-
-set -eufo pipefail
-
-echo "Adding Go PPA..."
 # https://launchpad.net/~longsleep/+archive/ubuntu/golang-backports
-sudo add-apt-repository -y ppa:longsleep/golang-backports || {
-    echo "Warning: Failed to add golang-backports PPA"
-}
-
-echo "Adding fastfetch PPA..."
-sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch || {
-    echo "Warning: Failed to add fastfetch PPA"
-}
-
-echo "Updating package lists..."
-sudo apt-get update -qq || {
-    echo "Warning: Failed to update package lists"
-}
-
-echo "Installing Go and fastfetch..."
-sudo apt-get install -y golang-go fastfetch || {
-    echo "Warning: Failed to install golang-go and/or fastfetch"
-}
-
-{{ end -}}
+sudo add-apt-repository -y ppa:longsleep/golang-backports || echo "Warning: failed to add golang PPA" >&2
+sudo apt-get install -y golang || echo "Warning: failed to install golang" >&2
+{{- end }}

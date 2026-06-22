@@ -1,49 +1,24 @@
 #!/bin/bash
-{{ if eq .osid "linux-ubuntu" }}
-{{ $packages := list
+{{- if eq .osid "linux-ubuntu" }}
+{{- $packages := list
      "aisleriot"
      "gnome-mahjongg"
      "gnome-mines"
      "gnome-sudoku"
      "thunderbird" }}
-{{ $snaps := list "firefox" }}
+{{- $snaps := list }}
+{{- $sudo := "sudo " }}
+{{- if eq .chezmoi.username "root" }}
+{{-   $sudo = "" }}
+{{- end }}
+set -uo pipefail
 
-{{ $sudo := "sudo " }}
-{{ if eq .chezmoi.username "root" }}
-{{   $sudo = "" }}
-{{ end }}
-
-#!/bin/bash
-
-set -eufo pipefail
-
-echo "Removing unwanted packages..."
-for package in {{ $packages | join " " }}; do
-    if dpkg -l | grep -q "^ii  $package "; then
-        echo "Removing $package..."
-        {{ $sudo }}apt-get remove -y "$package" || {
-            echo "Warning: Failed to remove $package, continuing..."
-            continue
-        }
-    else
-        echo "$package is not installed, skipping"
-    fi
+for pkg in {{ $packages | join " " }}; do
+  {{ $sudo }}apt-get remove -y "$pkg" || echo "Warning: failed to remove $pkg" >&2
 done
-
-{{ if lookPath "snap" }}
-echo "Removing unwanted snap packages..."
-{{   range $snaps }}
-if snap list | grep -q "^{{ . }} "; then
-    echo "Removing snap: {{ . }}"
-    {{ $sudo }}snap remove {{ . }} || echo "Warning: Failed to remove snap {{ . }}"
-else
-    echo "Snap {{ . }} is not installed, skipping"
-fi
-{{   end }}
-{{ end }}
-
-echo "Cleaning up..."
-{{ $sudo }}apt-get autoremove -y || echo "Warning: Failed to autoremove packages"
-{{ $sudo }}apt-get autoclean || echo "Warning: Failed to autoclean"
-
-{{ end }}
+{{- if lookPath "snap" }}
+{{-   range $snaps }}
+( snap info {{ . }} 2>/dev/null | grep -q ^installed: ) && {{ $sudo }}snap remove {{ . }} || echo "Warning: failed to remove snap {{ . }}" >&2
+{{-   end }}
+{{- end }}
+{{- end }}

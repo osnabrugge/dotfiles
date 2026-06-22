@@ -8,6 +8,10 @@
 .oh-my-zsh/templates/**
 .oh-my-zsh/custom/themes/powerlevel10k/**/*.zwc
 
+# Runtime-generated files that should never be managed by chezmoi
+.config/bw-session
+omz-debug.log
+
 {{ if ne .chezmoi.os "linux" }}
 .chezmoiscripts/linux/**
 .hushlogin

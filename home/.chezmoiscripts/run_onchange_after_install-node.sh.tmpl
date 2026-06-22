@@ -1,0 +1,16 @@
+#!/bin/bash
+{{- if and (stat (joinPath .chezmoi.homeDir ".nvm")) (not .ephemeral) }}
+set -uo pipefail
+
+export NVM_DIR="$HOME/.nvm"
+# shellcheck disable=SC1091
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+if command -v nvm >/dev/null 2>&1; then
+  # Install the latest LTS Node and make it the default for new shells.
+  nvm install --lts
+  nvm alias default 'lts/*'
+else
+  echo "Warning: nvm not found at $NVM_DIR, skipping Node install" >&2
+fi
+{{- end }}

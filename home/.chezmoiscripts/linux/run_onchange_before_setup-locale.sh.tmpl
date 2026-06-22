@@ -1,7 +1,6 @@
-{{ if eq .osid "linux-ubuntu" -}}
 #!/bin/bash
-
-set -eufo pipefail
+{{- if eq .osid "linux-ubuntu" }}
+set -uo pipefail
 
 echo "Setting up locale..."
 
@@ -20,4 +19,4 @@ sudo update-locale LANG=en_CA.UTF-8 LC_ALL=en_CA.UTF-8 || {
 }
 
 echo "Locale setup complete"
-{{ end -}}
+{{- end }}

@@ -1,0 +1,7 @@
+sync_address = "https://atuin.homeops.ca"
+enter_accept = false
+search_mode = "daemon-fuzzy"
+
+[daemon]
+enabled = true
+autostart = true

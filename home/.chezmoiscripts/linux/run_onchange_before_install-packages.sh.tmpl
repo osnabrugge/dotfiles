@@ -1,136 +1,57 @@
 #!/bin/bash
-{{ if or (eq .osid "linux-debian") (eq .osid "linux-raspbian") (eq .osid "linux-ubuntu") }}
-{{ $packages := list
+{{- if eq .osid "linux-debian" "linux-raspbian" "linux-ubuntu" }}
+{{- $packages := list
+     "bat"
      "build-essential"
      "curl"
+     "eza"
+     "fastfetch"
+     "fd-find"
+     "fzf"
      "git"
      "git-lfs"
      "jq"
+     "lazygit"
      "openssh-server"
+     "ripgrep"
      "shellcheck"
+     "starship"
+     "thefuck"
      "units"
+     "yq"
+     "zoxide"
      "zsh" }}
+{{- $snaps := list }}
+{{- $classicSnaps := list }}
+{{- if eq .osid "linux-ubuntu" }}
+{{-   $packages = mustAppend $packages "btop" }}
+{{-   $snaps = mustAppend $snaps "bw" }}
+{{- end }}
+{{- if not .headless }}
+{{-   $packages = mustAppend $packages "xclip" }}
+{{-   $classicSnaps = mustAppend $classicSnaps "code" }}
+{{- end }}
+{{- if .personal }}
+{{-   $packages = mustAppend $packages "musl-tools" }}
+{{-   $classicSnaps = concat $classicSnaps (list "goreleaser" "snapcraft") }}
+{{- end }}
+{{- $sudo := "sudo " }}
+{{- if eq .chezmoi.username "root" }}
+{{-   $sudo = "" }}
+{{- end }}
+set -uo pipefail
 
-# Ubuntu version-specific packages (excluding bitwarden-cli since it has its own installer)
-{{ $conditionalPackages := dict
-     "bat" (list "bat" "batcat")
-     "fd-find" (list "fd-find" "fdfind")
-     "fzf" (list "fzf")
-     "ripgrep" (list "ripgrep")
-     "libfuse2t64" (list "libfuse2t64" "libfuse2") }}
+{{ $sudo }}apt-get update || echo "Warning: apt-get update failed" >&2
 
-{{ $snaps := list }}
-{{ $classicSnaps := list }}
-
-{{ if eq .osid "linux-ubuntu" }}
-{{   $packages = concat $packages (list "btop" "fastfetch") }}
-{{   $snaps = mustAppend $snaps "bw" }}
-{{ end }}
-
-{{ if not .headless }}
-{{   $packages = mustAppend $packages "xclip" }}
-{{   $classicSnaps = mustAppend $classicSnaps "code" }}
-{{ end }}
-
-{{ if .personal }}
-{{   $packages = mustAppend $packages "musl-tools" }}
-{{   $classicSnaps = concat $classicSnaps (list "goreleaser" "snapcraft") }}
-{{ end }}
-
-{{ if eq .hostname "desktop01" }}
-{{   $packages = concat $packages (list "python3-dev" "python3-pip" "python3-venv") }}
-{{ end }}
-
-{{ $sudo := "sudo " }}
-{{ if eq .chezmoi.username "root" }}
-{{   $sudo = "" }}
-{{ end }}
-
-#!/bin/bash
-
-set -eufo pipefail
-
-# Function to try installing a package with fallback names
-install_package_with_fallback() {
-    local package_names=("$@")
-    for pkg in "${package_names[@]}"; do
-        if apt-cache show "$pkg" >/dev/null 2>&1; then
-            echo "Installing $pkg..."
-            if {{ $sudo }}apt-get install -y "$pkg"; then
-                return 0
-            fi
-        fi
-    done
-    echo "Warning: Could not install any variant of: ${package_names[*]}"
-    return 1
-}
-
-echo "Updating package lists..."
-{{ $sudo }}apt-get update -qq
-
-echo "Installing basic packages..."
-for package in {{ $packages | join " " }}; do
-    if ! dpkg -l | grep -q "^ii  $package "; then
-        echo "Installing $package..."
-        {{ $sudo }}apt-get install -y "$package" || {
-            echo "Warning: Failed to install $package, continuing..."
-            continue
-        }
-    else
-        echo "$package is already installed"
-    fi
+for pkg in {{ $packages | join " " }}; do
+  {{ $sudo }}apt-get install -y "$pkg" || echo "Warning: failed to install $pkg" >&2
 done
-
-# Install Node.js 20+ for Bitwarden CLI compatibility
-echo "Setting up Node.js 20+ for Bitwarden CLI..."
-if ! command -v node >/dev/null 2>&1 || [[ "$(node --version | cut -d'v' -f2 | cut -d'.' -f1)" -lt 20 ]]; then
-    echo "Installing Node.js 20+ via NodeSource..."
-
-    # Add NodeSource repository
-    curl -fsSL https://deb.nodesource.com/setup_20.x | {{ $sudo }}bash - || {
-        echo "Warning: Failed to add NodeSource repository"
-    }
-
-    # Install Node.js 20
-    {{ $sudo }}apt-get install -y nodejs || {
-        echo "Warning: Failed to install Node.js 20, will use snap for Bitwarden CLI"
-    }
-else
-    echo "Node.js $(node --version) is already installed"
-fi
-
-echo "Installing packages with fallbacks..."
-{{ range $pkg, $alternatives := $conditionalPackages }}
-if ! dpkg -l | grep -qE "^ii  ({{ $alternatives | join "|" }}) "; then
-    install_package_with_fallback {{ range $alternatives }}"{{ . }}" {{ end }} || {
-        echo "Skipping {{ $pkg }} - will try alternative installation methods later"
-    }
-else
-    echo "One of {{ $alternatives | join "/" }} is already installed"
-fi
-{{ end }}
-
-{{ if lookPath "snap" }}
-echo "Installing snap packages..."
-{{   range $snaps }}
-if ! snap list | grep -q "^{{ . }} "; then
-    echo "Installing snap: {{ . }}"
-    {{ $sudo }}snap install {{ . }} || echo "Warning: Failed to install snap {{ . }}"
-else
-    echo "Snap {{ . }} is already installed"
-fi
-{{   end }}
-{{   range $classicSnaps }}
-if ! snap list | grep -q "^{{ . }} "; then
-    echo "Installing classic snap: {{ . }}"
-    {{ $sudo }}snap install --classic {{ . }} || echo "Warning: Failed to install classic snap {{ . }}"
-else
-    echo "Classic snap {{ . }} is already installed"
-fi
-{{   end }}
-{{ else }}
-echo "Snap is not available on this system"
-{{ end }}
-
-echo "✅ Package installation complete"
-{{ end }}
+{{- if lookPath "snap" }}
+{{-   range $snaps }}
+( snap info {{ . }} 2>/dev/null | grep -q ^installed: ) || {{ $sudo }}snap install {{ . }} || echo "Warning: failed to install snap {{ . }}" >&2
+{{-   end }}
+{{-   range $classicSnaps }}
+( snap info {{ . }} 2>/dev/null | grep -q ^installed: ) || {{ $sudo }}snap install --classic {{ . }} || echo "Warning: failed to install snap {{ . }}" >&2
+{{-   end }}
+{{- end }}
+{{- end }}
